@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEREKUS — Доставка еды в Краматорске</title>
+    <style>
+        :root { --primary: #f7941d; --dark: #1a1a1a; --bg: #f8f8f8; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--dark); overflow-x: hidden; }
+        
+        /* Шапка */
+        header { 
+            background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; 
+            align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+        }
+        .menu-toggle { font-size: 24px; cursor: pointer; padding: 5px; }
+        .logo { font-size: 22px; font-weight: 900; flex-grow: 1; margin-left: 15px; letter-spacing: 1px; }
+        .logo span { color: var(--primary); }
+        .cart-btn { background: var(--dark); color: #fff; padding: 10px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 14px; }
+
+        /* Боковое меню */
+        .sidebar {
+            position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
+            background: #fff; z-index: 1000; transition: 0.3s; padding: 25px;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+        }
+        .sidebar.active { left: 0; }
+        .sidebar-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 999;
+        }
+        .sidebar-overlay.active { display: block; }
+        .side-link { display: block; padding: 15px 0; font-size: 18px; text-decoration: none; color: var(--dark); font-weight: 600; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+
+        /* Категории */
+        .cats { display: flex; gap: 10px; padding: 15px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+        .cat-item { background: #fff; padding: 10px 22px; border-radius: 25px; font-weight: 600; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
+        .cat-item.active { background: var(--primary); color: #fff; }
+
+        /* Сетка товаров */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 12px; }
+        .card { background: #fff; border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 3px 10px rgba(0,0,0,0.03); align-items: center; text-align: center; }
+        .img-box { height: 130px; width: 100%; background: #eee; cursor: zoom-in; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .p-info { padding: 12px; width: 100%; flex-grow: 1; display: flex; flex-direction: column; align-items: center; }
+        .p-title { font-weight: 700; font-size: 14px; height: 34px; margin-bottom: 5px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .p-price { color: var(--primary); font-weight: 800; font-size: 17px; margin-bottom: 10px; }
+        .add-btn { background: var(--primary); color: #fff; border: none; width: 95%; padding: 10px; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: auto; margin-bottom: 10px; }
+
+        /* Модалки */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        .m-content { background: #fff; width: 100%; max-width: 400px; border-radius: 20px; padding: 25px; position: relative; }
+        .close-m { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
+        
+        #photo-zoom { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; align-items: center; justify-content: center; }
+        #photo-zoom img { max-width: 95%; max-height: 85%; border-radius: 10px; }
+        input { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; }
+
+        .cart-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .del-x { color: red; font-weight: bold; margin-left: 15px; padding: 5px 10px; cursor: pointer; border: 1px solid #fdeaea; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="overlay" onclick="toggleMenu()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="close-m" onclick="toggleMenu()">&times;</div>
+        <div class="logo" style="margin-bottom: 20px;">PERE<span>KUS</span></div>
+        <div class="side-link" onclick="filterMenu('all'); toggleMenu()">🍴 Весь каталог</div>
+        <div class="side-link" onclick="filterMenu('pizza'); toggleMenu()">🍕 Пицца</div>
+        <div class="side-link" onclick="filterMenu('burger'); toggleMenu()">🍔 Бургеры</div>
+        <div class="side-link" onclick="filterMenu('drink'); toggleMenu()">🥤 Напитки</div>
+        <div class="side-link" onclick="showContacts()">📞 Контакты</div>
+    </div>
+
+    <header>
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+        <div class="logo">PERE<span>KUS</span></div>
+        <div class="cart-btn" onclick="openCart()">🛒 <span id="cart-sum">0</span> грн.</div>
+    </header>
+
+    <div class="cats" id="cat-bar">
+        <div class="cat-item active" onclick="filterMenu('all', this)">Все</div>
+        <div class="cat-item" onclick="filterMenu('pizza', this)">Пицца</div>
+        <div class="cat-item" onclick="filterMenu('burger', this)">Бургеры</div>
+        <div class="cat-item" onclick="filterMenu('drink', this)">Напитки</div>
+    </div>
+
+    <div class="grid" id="main-grid"></div>
+
+    <div id="contact-modal" class="modal">
+        <div class="m-content">
+            <div class="close-m" onclick="closeM('contact-modal')">&times;</div>
+            <h2>PEREKUS Контакты</h2>
+            <p>📍 г. Краматорск, ул. Дворцовая, 10</p>
+            <p>📞 +38 (050) 123-45-67</p>
+            <button class="add-btn" style="width:100%" onclick="window.location.href='tel:+380501234567'">Позвонить нам</button>
+        </div>
+    </div>
+
+    <div id="cart-modal" class="modal">
+        <div class="m-content">
+            <div class="close-m" onclick="closeM('cart-modal')">&times;</div>
+            <h3>Ваш заказ в PEREKUS</h3>
+            <div id="cart-items"></div>
+            <div id="total-val" style="font-size: 20px; font-weight: 900; margin: 20px 0; text-align: center;">Итого: 0 грн.</div>
+            <div id="order-form" style="display:none">
+                <input type="text" id="u-name" placeholder="Ваше имя">
+                <input type="tel" id="u-phone" placeholder="Телефон">
+                <button class="add-btn" style="width:100%" onclick="sendOrder()">Подтвердить заказ</button>
+            </div>
+            <button class="add-btn" id="next-btn" style="width:100%" onclick="showForm()">Оформить доставку</button>
+        </div>
+    </div>
+
+    <div id="photo-zoom" onclick="this.style.display='none'">
+        <img id="zoom-img" src="">
+    </div>
+
+    <script>
+        const products = [
+            // ПИЦЦЫ (8 шт)
+            { id: 1, name: 'Маргарита', price: 195, cat: 'pizza', img: 'https://images.unsplash.com/photo-1574071318508-1cdbad80ad38?w=400', icon: '🍕' },
+            { id: 2, name: 'Пепперони', price: 235, cat: 'pizza', img: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400', icon: '🍕' },
+            { id: 3, name: 'Четыре сыра', price: 280, cat: 'pizza', img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400', icon: '🍕' },
+            { id: 4, name: 'Гавайская', price: 210, cat: 'pizza', img: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400', icon: '🍕' },
+            { id: 5, name: 'Мясная Охотничья', price: 290, cat: 'pizza', img: 'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=400', icon: '🍕' },
+            { id: 6, name: 'Грибная', price: 190, cat: 'pizza', img: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400', icon: '🍕' },
+            { id: 7, name: 'Барбекю Чикен', price: 260, cat: 'pizza', img: 'https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?w=400', icon: '🍕' },
+            { id: 8, name: 'Карбонара', price: 245, cat: 'pizza', img: 'https://images.unsplash.com/photo-1574129623262-9578c51c3355?w=400', icon: '🍕' },
+            // БУРГЕРЫ (8 шт)
+            { id: 11, name: 'Чизбургер XL', price: 140, cat: 'burger', img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', icon: '🍔' },
+            { id: 12, name: 'Дабл Бургер', price: 195, cat: 'burger', img: 'https://images.unsplash.com/photo-1553979459-d2229ba7443b?w=400', icon: '🍔' },
+            { id: 13, name: 'Бекон Бургер', price: 180, cat: 'burger', img: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400', icon: '🍔' },
+            { id: 14, name: 'Чикен Бургер', price: 135, cat: 'burger', img: 'https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=400', icon: '🍔' },
+            { id: 15, name: 'BBQ Смоки', price: 170, cat: 'burger', img: 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=400', icon: '🍔' },
+            { id: 16, name: 'Мексикано Острый', price: 175, cat: 'burger', img: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400', icon: '🍔' },
+            { id: 17, name: 'Грибной Гурман', price: 165, cat: 'burger', img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400', icon: '🍔' },
+            { id: 18, name: 'Рыбный Бургер', price: 155, cat: 'burger', img: 'https://images.unsplash.com/photo-1551615593-ef5fe247e8f7?w=400', icon: '🍔' },
+            // НАПИТКИ (5 шт)
+            { id: 21, name: 'Coca-Cola 0.5', price: 45, cat: 'drink', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400', icon: '🥤' },
+            { id: 22, name: 'Fanta Orange 0.5', price: 45, cat: 'drink', img: 'https://images.unsplash.com/photo-1624517452488-04869289c4ca?w=400', icon: '🥤' },
+            { id: 23, name: 'Sprite 0.5', price: 45, cat: 'drink', img: 'https://images.unsplash.com/photo-1625772290748-39126ddd9224?w=400', icon: '🥤' },
+            { id: 24, name: 'Сок Rich Яблоко', price: 55, cat: 'drink', img: 'https://images.unsplash.com/photo-1567708233986-e822da84a9e1?w=400', icon: '🥤' },
+            { id: 25, name: 'Морс Домашний', price: 50, cat: 'drink', img: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=400', icon: '🥤' }
+        ];
+
+        let cart = [];
+
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function showContacts() {
+            toggleMenu();
+            document.getElementById('contact-modal').style.display = 'flex';
+        }
+
+        function closeM(id) { document.getElementById(id).style.display = 'none'; }
+
+        function render(arr) {
+            const grid = document.getElementById('main-grid');
+            grid.innerHTML = arr.map(p => `
+                <div class="card">
+                    <div class="img-box" onclick="zoom('${p.img}')">
+                        <img src="${p.img}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=\'font-size:40px\'>${p.icon}</span>'">
+                    </div>
+                    <div class="p-info">
+                        <div class="p-title">${p.name}</div>
+                        <div class="p-price">${p.price} грн.</div>
+                        <button class="add-btn" onclick="add(${p.id})">В корзину</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function add(id) {
+            const p = products.find(x => x.id === id);
+            const cartItem = {...p, cartUid: Date.now() + Math.random()};
+            cart.push(cartItem);
+            update();
+        }
+
+        function del(uid) {
+            cart = cart.filter(x => x.cartUid !== uid);
+            update();
+        }
+
+        function update() {
+            const sum = cart.reduce((a, b) => a + b.price, 0);
+            document.getElementById('cart-sum').innerText = sum;
+            document.getElementById('total-val').innerText = 'Итого: ' + sum + ' грн.';
+            
+            const list = document.getElementById('cart-items');
+            if(cart.length === 0) {
+                list.innerHTML = '<p style="text-align:center">Корзина пуста</p>';
+            } else {
+                list.innerHTML = cart.map(i => `
+                    <div class="cart-row">
+                        <span>${i.name}</span>
+                        <span>
+                            ${i.price} грн 
+                            <span class="del-x" onclick="del(${i.cartUid})">✕</span>
+                        </span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function zoom(src) {
+            document.getElementById('zoom-img').src = src;
+            document.getElementById('photo-zoom').style.display = 'flex';
+        }
+
+        function filterMenu(c, el) {
+            if (el) {
+                document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+                el.classList.add('active');
+            }
+            render(c === 'all' ? products : products.filter(x => x.cat === c));
+        }
+
+        function openCart() { 
+            document.getElementById('cart-modal').style.display='flex';
+            document.getElementById('order-form').style.display='none';
+            document.getElementById('next-btn').style.display='block';
+            update();
+        }
+
+        function showForm() {
+            if(cart.length === 0) return alert('Ваша корзина пуста');
+            document.getElementById('order-form').style.display='block';
+            document.getElementById('next-btn').style.display='none';
+        }
+
+        function sendOrder() {
+            const n = document.getElementById('u-name').value;
+            if(!n) return alert('Пожалуйста, введите ваше имя');
+            alert('PEREKUS принял ваш заказ, ' + n + '! Ожидайте звонка.');
+            cart = []; update(); closeM('cart-modal');
+        }
+
+        window.onload = () => render(products);
+    </script>
+</body>
+</html>
